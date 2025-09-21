@@ -61,6 +61,20 @@ struct TodayMetricsView: View {
                         )
                         
                         HealthMetricCard(
+                            title: "Blood Oxygen",
+                            value: healthKitManager.bloodOxygen > 0 ? String(format: "%.1f%%", healthKitManager.bloodOxygen) : "No data",
+                            icon: "lungs.fill",
+                            color: .cyan
+                        )
+                        
+                        HealthMetricCard(
+                            title: "Sleep Time",
+                            value: healthKitManager.sleepTime > 0 ? String(format: "%.1f hr", healthKitManager.sleepTime) : "No data",
+                            icon: "bed.double.fill",
+                            color: .indigo
+                        )
+                        
+                        HealthMetricCard(
                             title: "Walking + Running",
                             value: healthKitManager.walkingRunningDistance > 0 ? String(format: "%.2f km", healthKitManager.walkingRunningDistance) : "No data",
                             icon: "figure.walk",
