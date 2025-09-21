@@ -2,6 +2,18 @@ import HealthKit
 import Foundation
 import Combine
 
+struct HealthDataEntry {
+    let date: Date
+    let stepCount: Int
+    let heartRate: Double
+    let activeEnergyBurned: Double
+    let exerciseTime: Double
+    let standMinutes: Double
+    let heartRateVariability: Double
+    let walkingRunningDistance: Double
+    let swimmingDistance: Double
+}
+
 class HealthKitManager: ObservableObject {
     private let healthStore = HKHealthStore()
     
@@ -409,5 +421,169 @@ class HealthKitManager: ObservableObject {
         }
         
         healthStore.execute(query)
+    }
+    
+    func fetchHealthDataForDateRange(startDate: Date, endDate: Date, completion: @escaping (Result<[HealthDataEntry], Error>) -> Void) {
+        let calendar = Calendar.current
+        var currentDate = calendar.startOfDay(for: startDate)
+        let endOfRange = calendar.startOfDay(for: calendar.date(byAdding: .day, value: 1, to: endDate) ?? endDate)
+        
+        var healthDataEntries: [HealthDataEntry] = []
+        let dispatchGroup = DispatchGroup()
+        
+        while currentDate < endOfRange {
+            let nextDay = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+            
+            dispatchGroup.enter()
+            fetchDataForSingleDay(date: currentDate) { entry in
+                if let entry = entry {
+                    healthDataEntries.append(entry)
+                }
+                dispatchGroup.leave()
+            }
+            
+            currentDate = nextDay
+        }
+        
+        dispatchGroup.notify(queue: .main) {
+            let sortedEntries = healthDataEntries.sorted { $0.date < $1.date }
+            completion(.success(sortedEntries))
+        }
+    }
+    
+    private func fetchDataForSingleDay(date: Date, completion: @escaping (HealthDataEntry?) -> Void) {
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? startOfDay
+        
+        var stepCount: Int = 0
+        var heartRate: Double = 0
+        var activeEnergyBurned: Double = 0
+        var exerciseTime: Double = 0
+        var standMinutes: Double = 0
+        var heartRateVariability: Double = 0
+        var walkingRunningDistance: Double = 0
+        var swimmingDistance: Double = 0
+        
+        let dispatchGroup = DispatchGroup()
+        
+        // Fetch step count
+        if let stepType = HKObjectType.quantityType(forIdentifier: .stepCount) {
+            dispatchGroup.enter()
+            let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+            let query = HKStatisticsQuery(quantityType: stepType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, _ in
+                if let result = result, let sum = result.sumQuantity() {
+                    stepCount = Int(sum.doubleValue(for: HKUnit.count()))
+                }
+                dispatchGroup.leave()
+            }
+            healthStore.execute(query)
+        }
+        
+        // Fetch heart rate (average for the day)
+        if let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) {
+            dispatchGroup.enter()
+            let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+            let query = HKStatisticsQuery(quantityType: heartRateType, quantitySamplePredicate: predicate, options: .discreteAverage) { _, result, _ in
+                if let result = result, let average = result.averageQuantity() {
+                    heartRate = average.doubleValue(for: HKUnit(from: "count/min"))
+                }
+                dispatchGroup.leave()
+            }
+            healthStore.execute(query)
+        }
+        
+        // Fetch active energy burned
+        if let activeEnergyType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned) {
+            dispatchGroup.enter()
+            let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+            let query = HKStatisticsQuery(quantityType: activeEnergyType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, _ in
+                if let result = result, let sum = result.sumQuantity() {
+                    activeEnergyBurned = sum.doubleValue(for: HKUnit.kilocalorie())
+                }
+                dispatchGroup.leave()
+            }
+            healthStore.execute(query)
+        }
+        
+        // Fetch exercise time
+        if let exerciseTimeType = HKObjectType.quantityType(forIdentifier: .appleExerciseTime) {
+            dispatchGroup.enter()
+            let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+            let query = HKStatisticsQuery(quantityType: exerciseTimeType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, _ in
+                if let result = result, let sum = result.sumQuantity() {
+                    exerciseTime = sum.doubleValue(for: HKUnit.minute())
+                }
+                dispatchGroup.leave()
+            }
+            healthStore.execute(query)
+        }
+        
+        // Fetch stand minutes
+        if let standTimeType = HKObjectType.quantityType(forIdentifier: .appleStandTime) {
+            dispatchGroup.enter()
+            let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+            let query = HKStatisticsQuery(quantityType: standTimeType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, _ in
+                if let result = result, let sum = result.sumQuantity() {
+                    standMinutes = sum.doubleValue(for: HKUnit.minute())
+                }
+                dispatchGroup.leave()
+            }
+            healthStore.execute(query)
+        }
+        
+        // Fetch heart rate variability (average for the day)
+        if let hrvType = HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN) {
+            dispatchGroup.enter()
+            let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+            let query = HKStatisticsQuery(quantityType: hrvType, quantitySamplePredicate: predicate, options: .discreteAverage) { _, result, _ in
+                if let result = result, let average = result.averageQuantity() {
+                    heartRateVariability = average.doubleValue(for: HKUnit.secondUnit(with: .milli))
+                }
+                dispatchGroup.leave()
+            }
+            healthStore.execute(query)
+        }
+        
+        // Fetch walking/running distance
+        if let distanceType = HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning) {
+            dispatchGroup.enter()
+            let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+            let query = HKStatisticsQuery(quantityType: distanceType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, _ in
+                if let result = result, let sum = result.sumQuantity() {
+                    walkingRunningDistance = sum.doubleValue(for: HKUnit.meter()) / 1000.0
+                }
+                dispatchGroup.leave()
+            }
+            healthStore.execute(query)
+        }
+        
+        // Fetch swimming distance
+        if let swimmingType = HKObjectType.quantityType(forIdentifier: .distanceSwimming) {
+            dispatchGroup.enter()
+            let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+            let query = HKStatisticsQuery(quantityType: swimmingType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, _ in
+                if let result = result, let sum = result.sumQuantity() {
+                    swimmingDistance = sum.doubleValue(for: HKUnit.meter()) / 1000.0
+                }
+                dispatchGroup.leave()
+            }
+            healthStore.execute(query)
+        }
+        
+        dispatchGroup.notify(queue: .main) {
+            let entry = HealthDataEntry(
+                date: date,
+                stepCount: stepCount,
+                heartRate: heartRate,
+                activeEnergyBurned: activeEnergyBurned,
+                exerciseTime: exerciseTime,
+                standMinutes: standMinutes,
+                heartRateVariability: heartRateVariability,
+                walkingRunningDistance: walkingRunningDistance,
+                swimmingDistance: swimmingDistance
+            )
+            completion(entry)
+        }
     }
 }
