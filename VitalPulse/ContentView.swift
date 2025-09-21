@@ -29,6 +29,41 @@ struct ContentView: View {
                             color: .red
                         )
                         
+                        HealthMetricCard(
+                            title: "Active Energy",
+                            value: healthKitManager.activeEnergyBurned > 0 ? "\(Int(healthKitManager.activeEnergyBurned)) cal" : "No data",
+                            icon: "flame.fill",
+                            color: .orange
+                        )
+                        
+                        HealthMetricCard(
+                            title: "Exercise Time",
+                            value: healthKitManager.exerciseTime > 0 ? "\(Int(healthKitManager.exerciseTime)) min" : "No data",
+                            icon: "stopwatch.fill",
+                            color: .green
+                        )
+                        
+                        HealthMetricCard(
+                            title: "Stand Minutes",
+                            value: healthKitManager.standMinutes > 0 ? "\(Int(healthKitManager.standMinutes)) min" : "No data",
+                            icon: "figure.stand",
+                            color: .purple
+                        )
+                        
+                        HealthMetricCard(
+                            title: "Heart Rate Variability",
+                            value: healthKitManager.heartRateVariability > 0 ? "\(Int(healthKitManager.heartRateVariability)) ms" : "No data",
+                            icon: "waveform.path.ecg",
+                            color: .pink
+                        )
+                        
+                        HealthMetricCard(
+                            title: "Sleep Time",
+                            value: healthKitManager.sleepTime > 0 ? String(format: "%.1f hr", healthKitManager.sleepTime) : "No data",
+                            icon: "moon.fill",
+                            color: .indigo
+                        )
+                        
                         Button("Refresh Data") {
                             healthKitManager.fetchHealthData()
                         }
