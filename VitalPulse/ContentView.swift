@@ -12,21 +12,17 @@ struct ContentView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
+            VStack(alignment: .leading, spacing: 20) {
                 if healthKitManager.isAuthorized {
-                    VStack(spacing: 16) {
+                    LazyVGrid(columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible())
+                    ], spacing: 16) {
                         HealthMetricCard(
                             title: "Steps Today",
                             value: "\(healthKitManager.stepCount)",
                             icon: "figure.walk",
                             color: .blue
-                        )
-                        
-                        HealthMetricCard(
-                            title: "Heart Rate",
-                            value: healthKitManager.heartRate > 0 ? "\(Int(healthKitManager.heartRate)) BPM" : "No data",
-                            icon: "heart.fill",
-                            color: .red
                         )
                         
                         HealthMetricCard(
@@ -37,6 +33,13 @@ struct ContentView: View {
                         )
                         
                         HealthMetricCard(
+                            title: "Stand Minutes",
+                            value: healthKitManager.standMinutes > 0 ? "\(Int(healthKitManager.standMinutes)) min" : "No data",
+                            icon: "figure.stand",
+                            color: .purple
+                        )
+                        
+                        HealthMetricCard(
                             title: "Exercise Time",
                             value: healthKitManager.exerciseTime > 0 ? "\(Int(healthKitManager.exerciseTime)) min" : "No data",
                             icon: "stopwatch.fill",
@@ -44,10 +47,10 @@ struct ContentView: View {
                         )
                         
                         HealthMetricCard(
-                            title: "Stand Minutes",
-                            value: healthKitManager.standMinutes > 0 ? "\(Int(healthKitManager.standMinutes)) min" : "No data",
-                            icon: "figure.stand",
-                            color: .purple
+                            title: "Heart Rate",
+                            value: healthKitManager.heartRate > 0 ? "\(Int(healthKitManager.heartRate)) BPM" : "No data",
+                            icon: "heart.fill",
+                            color: .red
                         )
                         
                         HealthMetricCard(
@@ -58,18 +61,31 @@ struct ContentView: View {
                         )
                         
                         HealthMetricCard(
-                            title: "Sleep Time",
-                            value: healthKitManager.sleepTime > 0 ? String(format: "%.1f hr", healthKitManager.sleepTime) : "No data",
-                            icon: "moon.fill",
-                            color: .indigo
+                            title: "Walking + Running",
+                            value: healthKitManager.walkingRunningDistance > 0 ? String(format: "%.2f km", healthKitManager.walkingRunningDistance) : "No data",
+                            icon: "figure.walk",
+                            color: .teal
                         )
                         
+                        HealthMetricCard(
+                            title: "Swimming Distance",
+                            value: healthKitManager.swimmingDistance > 0 ? String(format: "%.2f km", healthKitManager.swimmingDistance) : "No data",
+                            icon: "figure.pool.swim",
+                            color: .mint
+                        )
+                    }
+                    
+                    HStack {
+                        Spacer()
                         Button("Refresh Data") {
                             healthKitManager.fetchHealthData()
                         }
                         .buttonStyle(.borderedProminent)
                         .padding(.top)
+                        Spacer()
                     }
+                    
+                    Spacer()
                 } else {
                     VStack(spacing: 16) {
                         Image(systemName: "heart.text.square")
@@ -87,7 +103,21 @@ struct ContentView: View {
                 }
             }
             .padding()
-            .navigationTitle("VitalPulse")
+            .navigationTitle("")
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 8) {
+                        Image("VitalPulseIcon")
+                            .resizable()
+                            .frame(width: 48, height: 48)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        Text("VitalPulse")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                    }
+                    .padding(.top, 40)
+                }
+            }
         }
     }
 }
@@ -99,24 +129,24 @@ struct HealthMetricCard: View {
     let color: Color
     
     var body: some View {
-        HStack {
+        VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(color)
-                .frame(width: 30)
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(spacing: 4) {
                 Text(title)
-                    .font(.subheadline)
+                    .font(.footnote)
                     .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
                 Text(value)
-                    .font(.title3)
+                    .font(.headline)
                     .fontWeight(.semibold)
+                    .multilineTextAlignment(.center)
             }
-            
-            Spacer()
         }
         .padding()
+        .frame(maxWidth: .infinity)
         .background(Color(.systemGray6))
         .cornerRadius(12)
     }

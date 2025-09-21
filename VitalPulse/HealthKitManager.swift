@@ -11,7 +11,10 @@ class HealthKitManager: ObservableObject {
     @Published var exerciseTime: Double = 0
     @Published var standMinutes: Double = 0
     @Published var heartRateVariability: Double = 0
+    @Published var bloodOxygen: Double = 0
     @Published var sleepTime: Double = 0
+    @Published var walkingRunningDistance: Double = 0
+    @Published var swimmingDistance: Double = 0
     @Published var isAuthorized: Bool = false
     
     init() {
@@ -37,8 +40,10 @@ class HealthKitManager: ObservableObject {
             HKObjectType.quantityType(forIdentifier: .appleExerciseTime)!,
             HKObjectType.quantityType(forIdentifier: .appleStandTime)!,
             HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
+            HKObjectType.quantityType(forIdentifier: .oxygenSaturation)!,
             HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
-            HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!
+            HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+            HKObjectType.quantityType(forIdentifier: .distanceSwimming)!
         ]
         
         healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
@@ -65,7 +70,10 @@ class HealthKitManager: ObservableObject {
         fetchExerciseTime()
         fetchStandMinutes()
         fetchHeartRateVariability()
+        fetchBloodOxygen()
         fetchSleepTime()
+        fetchWalkingRunningDistance()
+        fetchSwimmingDistance()
     }
     
     private func fetchStepCount() {
@@ -238,6 +246,29 @@ class HealthKitManager: ObservableObject {
         healthStore.execute(query)
     }
     
+    private func fetchBloodOxygen() {
+        guard let bloodOxygenType = HKObjectType.quantityType(forIdentifier: .oxygenSaturation) else { return }
+        
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        let query = HKSampleQuery(
+            sampleType: bloodOxygenType,
+            predicate: nil,
+            limit: 1,
+            sortDescriptors: [sortDescriptor]
+        ) { _, samples, error in
+            guard let sample = samples?.first as? HKQuantitySample else {
+                print("Failed to fetch blood oxygen: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.bloodOxygen = sample.quantity.doubleValue(for: HKUnit.percent()) * 100
+            }
+        }
+        
+        healthStore.execute(query)
+    }
+    
     private func fetchSleepTime() {
         guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return }
         
@@ -316,5 +347,67 @@ class HealthKitManager: ObservableObject {
         default:
             return "Unknown (\(value))"
         }
+    }
+    
+    private func fetchWalkingRunningDistance() {
+        guard let distanceType = HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning) else { return }
+        
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfDay = calendar.startOfDay(for: now)
+        
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startOfDay,
+            end: now,
+            options: .strictStartDate
+        )
+        
+        let query = HKStatisticsQuery(
+            quantityType: distanceType,
+            quantitySamplePredicate: predicate,
+            options: .cumulativeSum
+        ) { _, result, error in
+            guard let result = result, let sum = result.sumQuantity() else {
+                print("Failed to fetch walking + running distance: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.walkingRunningDistance = sum.doubleValue(for: HKUnit.meter()) / 1000.0 // Convert to kilometers
+            }
+        }
+        
+        healthStore.execute(query)
+    }
+    
+    private func fetchSwimmingDistance() {
+        guard let swimmingType = HKObjectType.quantityType(forIdentifier: .distanceSwimming) else { return }
+        
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfDay = calendar.startOfDay(for: now)
+        
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startOfDay,
+            end: now,
+            options: .strictStartDate
+        )
+        
+        let query = HKStatisticsQuery(
+            quantityType: swimmingType,
+            quantitySamplePredicate: predicate,
+            options: .cumulativeSum
+        ) { _, result, error in
+            guard let result = result, let sum = result.sumQuantity() else {
+                print("Failed to fetch swimming distance: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.swimmingDistance = sum.doubleValue(for: HKUnit.meter()) / 1000.0 // Convert to kilometers
+            }
+        }
+        
+        healthStore.execute(query)
     }
 }
