@@ -10,8 +10,12 @@ struct HealthDataEntry {
     let exerciseTime: Double
     let standMinutes: Double
     let heartRateVariability: Double
+    let bloodOxygen: Double
+    let sleepTime: Double
     let walkingRunningDistance: Double
     let swimmingDistance: Double
+    let vo2Max: Double
+    let respiratoryRate: Double
 }
 
 class HealthKitManager: ObservableObject {
@@ -27,6 +31,8 @@ class HealthKitManager: ObservableObject {
     @Published var sleepTime: Double = 0
     @Published var walkingRunningDistance: Double = 0
     @Published var swimmingDistance: Double = 0
+    @Published var vo2Max: Double = 0
+    @Published var respiratoryRate: Double = 0
     @Published var isAuthorized: Bool = false
     
     init() {
@@ -55,7 +61,9 @@ class HealthKitManager: ObservableObject {
             HKObjectType.quantityType(forIdentifier: .oxygenSaturation)!,
             HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
             HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-            HKObjectType.quantityType(forIdentifier: .distanceSwimming)!
+            HKObjectType.quantityType(forIdentifier: .distanceSwimming)!,
+            HKObjectType.quantityType(forIdentifier: .vo2Max)!,
+            HKObjectType.quantityType(forIdentifier: .respiratoryRate)!
         ]
         
         healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
@@ -86,6 +94,8 @@ class HealthKitManager: ObservableObject {
         fetchSleepTime()
         fetchWalkingRunningDistance()
         fetchSwimmingDistance()
+        fetchVO2Max()
+        fetchRespiratoryRate()
     }
     
     private func fetchStepCount() {
@@ -462,8 +472,12 @@ class HealthKitManager: ObservableObject {
         var exerciseTime: Double = 0
         var standMinutes: Double = 0
         var heartRateVariability: Double = 0
+        var bloodOxygen: Double = 0
+        var sleepTime: Double = 0
         var walkingRunningDistance: Double = 0
         var swimmingDistance: Double = 0
+        var vo2Max: Double = 0
+        var respiratoryRate: Double = 0
         
         let dispatchGroup = DispatchGroup()
         
@@ -571,6 +585,74 @@ class HealthKitManager: ObservableObject {
             healthStore.execute(query)
         }
         
+        // Fetch blood oxygen (latest for the day)
+        if let bloodOxygenType = HKObjectType.quantityType(forIdentifier: .oxygenSaturation) {
+            dispatchGroup.enter()
+            let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+            let query = HKSampleQuery(sampleType: bloodOxygenType, predicate: predicate, limit: 1, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                if let sample = samples?.first as? HKQuantitySample {
+                    bloodOxygen = sample.quantity.doubleValue(for: HKUnit.percent()) * 100
+                }
+                dispatchGroup.leave()
+            }
+            healthStore.execute(query)
+        }
+        
+        // Fetch sleep time for the night
+        if let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) {
+            dispatchGroup.enter()
+            let startOfYesterday = calendar.startOfDay(for: calendar.date(byAdding: .day, value: -1, to: date)!)
+            let sleepWindowStart = calendar.date(byAdding: .hour, value: 18, to: startOfYesterday)! // 6 PM yesterday
+            let sleepWindowEnd = calendar.date(byAdding: .hour, value: 14, to: startOfDay)! // 2 PM today
+            let sleepPredicate = HKQuery.predicateForSamples(withStart: sleepWindowStart, end: sleepWindowEnd, options: .strictStartDate)
+            
+            let query = HKSampleQuery(sampleType: sleepType, predicate: sleepPredicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, _ in
+                if let samples = samples as? [HKCategorySample] {
+                    let sleepSamples = samples.filter { sample in
+                        sample.value == HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue ||
+                        sample.value == HKCategoryValueSleepAnalysis.asleepCore.rawValue ||
+                        sample.value == HKCategoryValueSleepAnalysis.asleepDeep.rawValue ||
+                        sample.value == HKCategoryValueSleepAnalysis.asleepREM.rawValue
+                    }
+                    let totalSleepTime = sleepSamples.reduce(0.0) { total, sample in
+                        total + sample.endDate.timeIntervalSince(sample.startDate)
+                    }
+                    sleepTime = totalSleepTime / 3600.0 // Convert to hours
+                }
+                dispatchGroup.leave()
+            }
+            healthStore.execute(query)
+        }
+        
+        // Fetch VO2 Max (latest for the day)
+        if let vo2MaxType = HKObjectType.quantityType(forIdentifier: .vo2Max) {
+            dispatchGroup.enter()
+            let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+            let query = HKSampleQuery(sampleType: vo2MaxType, predicate: predicate, limit: 1, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                if let sample = samples?.first as? HKQuantitySample {
+                    vo2Max = sample.quantity.doubleValue(for: HKUnit(from: "ml/kg*min"))
+                }
+                dispatchGroup.leave()
+            }
+            healthStore.execute(query)
+        }
+        
+        // Fetch respiratory rate (latest for the day)
+        if let respiratoryRateType = HKObjectType.quantityType(forIdentifier: .respiratoryRate) {
+            dispatchGroup.enter()
+            let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+            let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+            let query = HKSampleQuery(sampleType: respiratoryRateType, predicate: predicate, limit: 1, sortDescriptors: [sortDescriptor]) { _, samples, _ in
+                if let sample = samples?.first as? HKQuantitySample {
+                    respiratoryRate = sample.quantity.doubleValue(for: HKUnit(from: "count/min"))
+                }
+                dispatchGroup.leave()
+            }
+            healthStore.execute(query)
+        }
+        
         dispatchGroup.notify(queue: .main) {
             let entry = HealthDataEntry(
                 date: date,
@@ -580,10 +662,60 @@ class HealthKitManager: ObservableObject {
                 exerciseTime: exerciseTime,
                 standMinutes: standMinutes,
                 heartRateVariability: heartRateVariability,
+                bloodOxygen: bloodOxygen,
+                sleepTime: sleepTime,
                 walkingRunningDistance: walkingRunningDistance,
-                swimmingDistance: swimmingDistance
+                swimmingDistance: swimmingDistance,
+                vo2Max: vo2Max,
+                respiratoryRate: respiratoryRate
             )
             completion(entry)
         }
+    }
+    
+    private func fetchVO2Max() {
+        guard let vo2MaxType = HKObjectType.quantityType(forIdentifier: .vo2Max) else { return }
+        
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        let query = HKSampleQuery(
+            sampleType: vo2MaxType,
+            predicate: nil,
+            limit: 1,
+            sortDescriptors: [sortDescriptor]
+        ) { _, samples, error in
+            guard let sample = samples?.first as? HKQuantitySample else {
+                print("Failed to fetch VO2 Max: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.vo2Max = sample.quantity.doubleValue(for: HKUnit(from: "ml/kg*min"))
+            }
+        }
+        
+        healthStore.execute(query)
+    }
+    
+    private func fetchRespiratoryRate() {
+        guard let respiratoryRateType = HKObjectType.quantityType(forIdentifier: .respiratoryRate) else { return }
+        
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        let query = HKSampleQuery(
+            sampleType: respiratoryRateType,
+            predicate: nil,
+            limit: 1,
+            sortDescriptors: [sortDescriptor]
+        ) { _, samples, error in
+            guard let sample = samples?.first as? HKQuantitySample else {
+                print("Failed to fetch Respiratory Rate: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self.respiratoryRate = sample.quantity.doubleValue(for: HKUnit(from: "count/min"))
+            }
+        }
+        
+        healthStore.execute(query)
     }
 }

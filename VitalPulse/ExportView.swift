@@ -154,14 +154,14 @@ struct DatePresetsView: View {
     }
     
     private func generateCSV(from data: [HealthDataEntry], startDate: Date, endDate: Date, presetName: String) {
-        let csvHeader = "Date,Steps,Heart Rate (BPM),Active Energy (cal),Exercise Time (min),Stand Minutes,HRV (ms),Walking Distance (km),Swimming Distance (km)\n"
+        let csvHeader = "Date,Steps,Heart Rate (BPM),Active Energy (cal),Exercise Time (min),Stand Minutes,HRV (ms),Blood Oxygen (%),Sleep Time (hr),Walking Distance (km),Swimming Distance (km),VO2 Max (ml/kg/min),Respiratory Rate (BPM)\n"
         
         let csvContent = data.map { entry in
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy-MM-dd"
             let dateString = formatter.string(from: entry.date)
             
-            return "\(dateString),\(entry.stepCount),\(entry.heartRate),\(Int(entry.activeEnergyBurned)),\(Int(entry.exerciseTime)),\(Int(entry.standMinutes)),\(Int(entry.heartRateVariability)),\(String(format: "%.2f", entry.walkingRunningDistance)),\(String(format: "%.2f", entry.swimmingDistance))"
+            return "\(dateString),\(entry.stepCount),\(entry.heartRate),\(Int(entry.activeEnergyBurned)),\(Int(entry.exerciseTime)),\(Int(entry.standMinutes)),\(Int(entry.heartRateVariability)),\(String(format: "%.1f", entry.bloodOxygen)),\(String(format: "%.1f", entry.sleepTime)),\(String(format: "%.2f", entry.walkingRunningDistance)),\(String(format: "%.2f", entry.swimmingDistance)),\(String(format: "%.1f", entry.vo2Max)),\(String(format: "%.0f", entry.respiratoryRate))"
         }.joined(separator: "\n")
         
         let fullCSV = csvHeader + csvContent
@@ -318,14 +318,14 @@ struct CustomDatesView: View {
     }
     
     private func generateCSV(from data: [HealthDataEntry]) {
-        let csvHeader = "Date,Steps,Heart Rate (BPM),Active Energy (cal),Exercise Time (min),Stand Minutes,HRV (ms),Walking Distance (km),Swimming Distance (km)\n"
+        let csvHeader = "Date,Steps,Heart Rate (BPM),Active Energy (cal),Exercise Time (min),Stand Minutes,HRV (ms),Blood Oxygen (%),Sleep Time (hr),Walking Distance (km),Swimming Distance (km),VO2 Max (ml/kg/min),Respiratory Rate (BPM)\n"
         
         let csvContent = data.map { entry in
             let formatter = DateFormatter()
             formatter.dateFormat = "yyyy-MM-dd"
             let dateString = formatter.string(from: entry.date)
             
-            return "\(dateString),\(entry.stepCount),\(entry.heartRate),\(Int(entry.activeEnergyBurned)),\(Int(entry.exerciseTime)),\(Int(entry.standMinutes)),\(Int(entry.heartRateVariability)),\(String(format: "%.2f", entry.walkingRunningDistance)),\(String(format: "%.2f", entry.swimmingDistance))"
+            return "\(dateString),\(entry.stepCount),\(entry.heartRate),\(Int(entry.activeEnergyBurned)),\(Int(entry.exerciseTime)),\(Int(entry.standMinutes)),\(Int(entry.heartRateVariability)),\(String(format: "%.1f", entry.bloodOxygen)),\(String(format: "%.1f", entry.sleepTime)),\(String(format: "%.2f", entry.walkingRunningDistance)),\(String(format: "%.2f", entry.swimmingDistance)),\(String(format: "%.1f", entry.vo2Max)),\(String(format: "%.0f", entry.respiratoryRate))"
         }.joined(separator: "\n")
         
         let fullCSV = csvHeader + csvContent

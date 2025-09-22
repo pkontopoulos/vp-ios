@@ -12,126 +12,146 @@ struct TodayMetricsView: View {
     
     var body: some View {
         NavigationView {
-            VStack(alignment: .leading, spacing: 20) {
-                if healthKitManager.isAuthorized {
-                    LazyVGrid(columns: [
-                        GridItem(.flexible()),
-                        GridItem(.flexible())
-                    ], spacing: 16) {
-                        HealthMetricCard(
-                            title: "Steps Today",
-                            value: "\(healthKitManager.stepCount)",
-                            icon: "figure.walk",
-                            color: .blue
-                        )
-                        
-                        HealthMetricCard(
-                            title: "Active Energy",
-                            value: healthKitManager.activeEnergyBurned > 0 ? "\(Int(healthKitManager.activeEnergyBurned)) cal" : "No data",
-                            icon: "flame.fill",
-                            color: .orange
-                        )
-                        
-                        HealthMetricCard(
-                            title: "Stand Minutes",
-                            value: healthKitManager.standMinutes > 0 ? "\(Int(healthKitManager.standMinutes)) min" : "No data",
-                            icon: "figure.stand",
-                            color: .purple
-                        )
-                        
-                        HealthMetricCard(
-                            title: "Exercise Time",
-                            value: healthKitManager.exerciseTime > 0 ? "\(Int(healthKitManager.exerciseTime)) min" : "No data",
-                            icon: "stopwatch.fill",
-                            color: .green
-                        )
-                        
-                        HealthMetricCard(
-                            title: "Heart Rate",
-                            value: healthKitManager.heartRate > 0 ? "\(Int(healthKitManager.heartRate)) BPM" : "No data",
-                            icon: "heart.fill",
-                            color: .red
-                        )
-                        
-                        HealthMetricCard(
-                            title: "Heart Rate Variability",
-                            value: healthKitManager.heartRateVariability > 0 ? "\(Int(healthKitManager.heartRateVariability)) ms" : "No data",
-                            icon: "waveform.path.ecg",
-                            color: .pink
-                        )
-                        
-                        HealthMetricCard(
-                            title: "Blood Oxygen",
-                            value: healthKitManager.bloodOxygen > 0 ? String(format: "%.1f%%", healthKitManager.bloodOxygen) : "No data",
-                            icon: "lungs.fill",
-                            color: .cyan
-                        )
-                        
-                        HealthMetricCard(
-                            title: "Sleep Time",
-                            value: healthKitManager.sleepTime > 0 ? String(format: "%.1f hr", healthKitManager.sleepTime) : "No data",
-                            icon: "bed.double.fill",
-                            color: .indigo
-                        )
-                        
-                        HealthMetricCard(
-                            title: "Walking + Running",
-                            value: healthKitManager.walkingRunningDistance > 0 ? String(format: "%.2f km", healthKitManager.walkingRunningDistance) : "No data",
-                            icon: "figure.walk",
-                            color: .teal
-                        )
-                        
-                        HealthMetricCard(
-                            title: "Swimming Distance",
-                            value: healthKitManager.swimmingDistance > 0 ? String(format: "%.2f km", healthKitManager.swimmingDistance) : "No data",
-                            icon: "figure.pool.swim",
-                            color: .mint
-                        )
-                    }
-                    
-                    HStack {
-                        Spacer()
-                        Button("Refresh Data") {
-                            healthKitManager.fetchHealthData()
+            VStack(spacing: 0) {
+                // Fixed header area
+                HStack(spacing: 8) {
+                    Image("VitalPulseIcon")
+                        .resizable()
+                        .frame(width: 48, height: 48)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    Text("VitalPulse")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                }
+                .padding(.top, 20)
+                .padding(.bottom, 20)
+                .frame(maxWidth: .infinity)
+                .background(Color(.systemBackground))
+                .zIndex(1)
+                
+                // Scrollable content area
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        if healthKitManager.isAuthorized {
+                            LazyVGrid(columns: [
+                                GridItem(.flexible()),
+                                GridItem(.flexible())
+                            ], spacing: 16) {
+                                HealthMetricCard(
+                                    title: "Steps Today",
+                                    value: "\(healthKitManager.stepCount)",
+                                    icon: "figure.walk",
+                                    color: .blue
+                                )
+                                
+                                HealthMetricCard(
+                                    title: "Active Energy",
+                                    value: healthKitManager.activeEnergyBurned > 0 ? "\(Int(healthKitManager.activeEnergyBurned)) cal" : "No data",
+                                    icon: "flame.fill",
+                                    color: .orange
+                                )
+                                
+                                HealthMetricCard(
+                                    title: "Stand Minutes",
+                                    value: healthKitManager.standMinutes > 0 ? "\(Int(healthKitManager.standMinutes)) min" : "No data",
+                                    icon: "figure.stand",
+                                    color: .purple
+                                )
+                                
+                                HealthMetricCard(
+                                    title: "Exercise Time",
+                                    value: healthKitManager.exerciseTime > 0 ? "\(Int(healthKitManager.exerciseTime)) min" : "No data",
+                                    icon: "stopwatch.fill",
+                                    color: .green
+                                )
+                                
+                                HealthMetricCard(
+                                    title: "Heart Rate",
+                                    value: healthKitManager.heartRate > 0 ? "\(Int(healthKitManager.heartRate)) BPM" : "No data",
+                                    icon: "heart.fill",
+                                    color: .red
+                                )
+                                
+                                HealthMetricCard(
+                                    title: "Heart Rate Variability",
+                                    value: healthKitManager.heartRateVariability > 0 ? "\(Int(healthKitManager.heartRateVariability)) ms" : "No data",
+                                    icon: "waveform.path.ecg",
+                                    color: .pink
+                                )
+                                
+                                HealthMetricCard(
+                                    title: "Blood Oxygen",
+                                    value: healthKitManager.bloodOxygen > 0 ? String(format: "%.1f%%", healthKitManager.bloodOxygen) : "No data",
+                                    icon: "lungs.fill",
+                                    color: .cyan
+                                )
+                                
+                                HealthMetricCard(
+                                    title: "Respiratory Rate",
+                                    value: healthKitManager.respiratoryRate > 0 ? String(format: "%.0f BPM", healthKitManager.respiratoryRate) : "No data",
+                                    icon: "wind",
+                                    color: .brown
+                                )
+
+                                HealthMetricCard(
+                                    title: "Sleep Time",
+                                    value: healthKitManager.sleepTime > 0 ? String(format: "%.1f hr", healthKitManager.sleepTime) : "No data",
+                                    icon: "bed.double.fill",
+                                    color: .indigo
+                                )
+                                
+                                HealthMetricCard(
+                                    title: "Walking + Running",
+                                    value: healthKitManager.walkingRunningDistance > 0 ? String(format: "%.2f km", healthKitManager.walkingRunningDistance) : "No data",
+                                    icon: "figure.walk",
+                                    color: .teal
+                                )
+                                
+                                HealthMetricCard(
+                                    title: "Swimming Distance",
+                                    value: healthKitManager.swimmingDistance > 0 ? String(format: "%.2f km", healthKitManager.swimmingDistance) : "No data",
+                                    icon: "figure.pool.swim",
+                                    color: .mint
+                                )
+                                
+                                HealthMetricCard(
+                                    title: "VO2 Max",
+                                    value: healthKitManager.vo2Max > 0 ? String(format: "%.1f ml/kg/min", healthKitManager.vo2Max) : "No data",
+                                    icon: "lungs",
+                                    color: .yellow
+                                )
+                            }
+                            
+                            HStack {
+                                Spacer()
+                                Button("Refresh Data") {
+                                    healthKitManager.fetchHealthData()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .padding(.top)
+                                Spacer()
+                            }
+                        } else {
+                            VStack(spacing: 16) {
+                                Image(systemName: "heart.text.square")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.red)
+                                
+                                Text("HealthKit Access Required")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                
+                                Text("Please allow access to your health data to view your vital signs.")
+                                    .multilineTextAlignment(.center)
+                                    .foregroundColor(.secondary)
+                            }
                         }
-                        .buttonStyle(.borderedProminent)
-                        .padding(.top)
-                        Spacer()
                     }
-                    
-                    Spacer()
-                } else {
-                    VStack(spacing: 16) {
-                        Image(systemName: "heart.text.square")
-                            .font(.system(size: 60))
-                            .foregroundColor(.red)
-                        
-                        Text("HealthKit Access Required")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
-                        Text("Please allow access to your health data to view your vital signs.")
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.secondary)
-                    }
+                    .padding()
                 }
             }
-            .padding()
             .navigationTitle("")
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    HStack(spacing: 8) {
-                        Image("VitalPulseIcon")
-                            .resizable()
-                            .frame(width: 48, height: 48)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                        Text("VitalPulse")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                    }
-                    .padding(.top, 40)
-                }
-            }
+            .navigationBarHidden(true)
         }
     }
 }
